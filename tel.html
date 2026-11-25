@@ -17,6 +17,10 @@
   p { line-height:1.5; }
   .small { font-size:13px; color:#667085; }
   .ok { color:#1a7f37; font-weight:600; }
+  .err { color:#b42318; }
+  .res { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
+  .res label { background:#f1f4f9; border-radius:8px; padding:8px 10px; font-size:14px; cursor:pointer; }
+  textarea { width:100%; box-sizing:border-box; min-height:80px; border:1px solid #d0d5dd; border-radius:8px; padding:8px; font-family:inherit; font-size:14px; }
 </style>
 </head>
 <body>
@@ -27,14 +31,21 @@
   <button id="copy" type="button">Copier le numéro</button>
   <div id="confirmBox">
     <hr>
-    <p>Une fois l'appel passé :</p>
-    <button class="done" id="done" type="button">Appel passé → marquer terminé</button>
+    <p><b>Après l'appel, résultat :</b></p>
+    <div class="res">
+      <label><input type="radio" name="r" value="Joint"> Joint</label>
+      <label><input type="radio" name="r" value="Pas de réponse"> Pas de réponse</label>
+      <label><input type="radio" name="r" value="Message laissé"> Message laissé</label>
+    </div>
+    <textarea id="com" placeholder="Commentaire (facultatif) : ce que le client a dit, prochaine étape…"></textarea>
+    <button class="done" id="done" type="button">Enregistrer → relance terminée</button>
     <p id="doneMsg" class="small"></p>
+    <p class="small">Le compte rendu est ajouté dans HubSpot (note sur le contact) le soir même.</p>
   </div>
   <p class="small">Astuce : sur ordinateur, l'appel s'ouvre dans l'application de téléphonie (iPhone via FaceTime sur Mac, Phone Link sur Windows). Cochez « Toujours autoriser » la première fois.</p>
 </div>
 <script>
-  var HOOK = "https://hooks.airtable.com/workflows/v1/genericWebhook/app7rJcA5TpNLWZ1y/wflcQpvnD4v8TVIIG/wtrkDMoetleqaGEHw";
+  var HOOK = "https://hooks.airtable.com/workflows/v1/genericWebhook/app7rJcA5TpNLWZ1y/wflkaw53nOLhveNVj/wtr7hvjb8gRNGhX5j";
   var target = "";
   try { target = decodeURIComponent(location.hash.slice(1)); } catch (e) {}
   var rec = new URLSearchParams(location.search).get("r") || "";
@@ -57,18 +68,24 @@
   };
   document.getElementById("done").onclick = function () {
     var b = this, m = document.getElementById("doneMsg");
-    b.disabled = true; m.textContent = "Enregistrement…";
+    var sel = document.querySelector('input[name="r"]:checked');
+    if (!sel) { m.className = "err"; m.textContent = "Choisissez le résultat de l'appel."; return; }
+    var com = document.getElementById("com").value.trim();
+    b.disabled = true; m.className = "small"; m.textContent = "Enregistrement…";
+    var body = "recordId=" + encodeURIComponent(rec)
+      + "&resultat=" + encodeURIComponent("Appel : " + sel.value)
+      + "&commentaire=" + encodeURIComponent(com ? " – " + com : "");
     fetch(HOOK, {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: "recordId=" + encodeURIComponent(rec)
+      body: body
     }).then(function () {
       b.textContent = "Relance terminée ✓";
       m.className = "ok"; m.textContent = "C'est noté dans Airtable. Vous pouvez fermer cet onglet.";
     }).catch(function () {
       b.disabled = false;
-      m.textContent = "Échec de l'enregistrement, réessayez ou passez la relance en terminé dans Airtable.";
+      m.className = "err"; m.textContent = "Échec de l'enregistrement, réessayez.";
     });
   };
 </script>
