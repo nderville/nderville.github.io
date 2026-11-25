@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Appel – Jantes Plus</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f5f6f8; color:#1d2330; margin:0; padding:40px 16px; text-align:center; }
+  .box { max-width:420px; margin:0 auto; background:#fff; border-radius:12px; padding:28px 22px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  a.btn, button { display:inline-block; margin:8px 4px 0; padding:12px 18px; border-radius:8px; border:0; font-size:15px; cursor:pointer; text-decoration:none; }
+  a.btn { background:#1f6feb; color:#fff; }
+  button { background:#e8eaef; color:#1d2330; }
+  button.done { background:#1a7f37; color:#fff; font-size:16px; padding:14px 22px; }
+  button:disabled { opacity:.6; cursor:default; }
+  hr { border:0; border-top:1px solid #eceef2; margin:24px 0 16px; }
+  p { line-height:1.5; }
+  .small { font-size:13px; color:#667085; }
+  .ok { color:#1a7f37; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>Ouverture de l'appel…</h2>
+  <p id="msg">Si rien ne s'ouvre, cliquez sur le bouton ci-dessous.</p>
+  <a class="btn" id="open" href="#">Appeler</a>
+  <button id="copy" type="button">Copier le numéro</button>
+  <div id="confirmBox">
+    <hr>
+    <p>Une fois l'appel passé :</p>
+    <button class="done" id="done" type="button">Appel passé → marquer terminé</button>
+    <p id="doneMsg" class="small"></p>
+  </div>
+  <p class="small">Astuce : sur ordinateur, l'appel s'ouvre dans l'application de téléphonie (iPhone via FaceTime sur Mac, Phone Link sur Windows). Cochez « Toujours autoriser » la première fois.</p>
+</div>
+<script>
+  var HOOK = "https://hooks.airtable.com/workflows/v1/genericWebhook/app7rJcA5TpNLWZ1y/wflcQpvnD4v8TVIIG/wtrkDMoetleqaGEHw";
+  var target = "";
+  try { target = decodeURIComponent(location.hash.slice(1)); } catch (e) {}
+  var rec = new URLSearchParams(location.search).get("r") || "";
+  var ok = /^tel:/i.test(target);
+  var recOk = /^rec[A-Za-z0-9]{14}$/.test(rec);
+  var open = document.getElementById("open");
+  if (ok) {
+    open.href = target;
+    location.href = target;
+  } else {
+    document.getElementById("msg").textContent = "Numéro manquant ou invalide.";
+    open.style.display = "none";
+  }
+  if (!recOk) document.getElementById("confirmBox").style.display = "none";
+  document.getElementById("copy").onclick = function () {
+    if (!ok) return;
+    navigator.clipboard.writeText(target.replace(/^tel:/i, "")).then(function () {
+      document.getElementById("copy").textContent = "Numéro copié ✓";
+    });
+  };
+  document.getElementById("done").onclick = function () {
+    var b = this, m = document.getElementById("doneMsg");
+    b.disabled = true; m.textContent = "Enregistrement…";
+    fetch(HOOK, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "recordId=" + encodeURIComponent(rec)
+    }).then(function () {
+      b.textContent = "Relance terminée ✓";
+      m.className = "ok"; m.textContent = "C'est noté dans Airtable. Vous pouvez fermer cet onglet.";
+    }).catch(function () {
+      b.disabled = false;
+      m.textContent = "Échec de l'enregistrement, réessayez ou passez la relance en terminé dans Airtable.";
+    });
+  };
+</script>
+</body>
+</html>
