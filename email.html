@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Envoi email – Jantes Plus</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f5f6f8; color:#1d2330; margin:0; padding:40px 16px; text-align:center; }
+  .box { max-width:420px; margin:0 auto; background:#fff; border-radius:12px; padding:28px 22px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  button { display:inline-block; margin:8px 4px 0; padding:14px 22px; border-radius:8px; border:0; font-size:16px; cursor:pointer; background:#1f6feb; color:#fff; }
+  button:disabled { opacity:.6; cursor:default; }
+  p { line-height:1.5; }
+  .small { font-size:13px; color:#667085; }
+  .ok { color:#1a7f37; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>Envoyer la relance par email</h2>
+  <p id="msg">L'email partira de la boîte de José, avec sa signature.</p>
+  <button id="send" type="button">Envoyer l'email</button>
+  <p id="res" class="small"></p>
+  <p class="small">Vérifiez le résultat dans la colonne « Retour envoi email » si la relance ne disparaît pas de la liste.</p>
+</div>
+<script>
+  var HOOK = "https://hooks.airtable.com/workflows/v1/genericWebhook/app7rJcA5TpNLWZ1y/wflzQXSgEt9PqYZhX/wtrcIAuwlMABcDTyQ";
+  var rec = new URLSearchParams(location.search).get("r") || "";
+  var btn = document.getElementById("send"), res = document.getElementById("res");
+  if (!/^rec[A-Za-z0-9]{14}$/.test(rec)) {
+    document.getElementById("msg").textContent = "Relance introuvable (lien invalide).";
+    btn.style.display = "none";
+  }
+  btn.onclick = function () {
+    btn.disabled = true; res.textContent = "Envoi en cours…";
+    fetch(HOOK, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "recordId=" + encodeURIComponent(rec)
+    }).then(function () {
+      btn.textContent = "Demande envoyée ✓";
+      res.className = "ok"; res.textContent = "L'email part dans quelques secondes. Vous pouvez fermer cet onglet.";
+    }).catch(function () {
+      btn.disabled = false;
+      res.textContent = "Échec, réessayez.";
+    });
+  };
+</script>
+</body>
+</html>
